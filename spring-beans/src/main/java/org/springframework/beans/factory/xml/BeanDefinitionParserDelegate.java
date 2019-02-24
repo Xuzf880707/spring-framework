@@ -1034,7 +1034,7 @@ public class BeanDefinitionParserDelegate {
 		else if (nodeNameEquals(ele, MAP_ELEMENT)) {//map
 			return parseMapElement(ele, bd);
 		}
-		else if (nodeNameEquals(ele, PROPS_ELEMENT)) {//props
+		else if (nodeNameEquals(ele, PROPS_ELEMENT)) {//prop
 			return parsePropsElement(ele);
 		}
 		else {
