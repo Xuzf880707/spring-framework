@@ -139,7 +139,7 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 		super(parent);
 		setConfigLocations(configLocations);
 		if (refresh) {
-			refresh();
+			refresh();//启动了BeanDefinition载入
 		}
 	}
 
@@ -152,6 +152,8 @@ public class FileSystemXmlApplicationContext extends AbstractXmlApplicationConte
 	 * @param path path to the resource
 	 * @return the Resource handle
 	 * @see org.springframework.web.context.support.XmlWebApplicationContext#getResourceByPath
+	 *
+	 * 		配置文件资源位的定位
 	 */
 	@Override
 	protected Resource getResourceByPath(String path) {
