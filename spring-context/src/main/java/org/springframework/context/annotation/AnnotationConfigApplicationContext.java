@@ -93,8 +93,10 @@ public class AnnotationConfigApplicationContext extends GenericApplicationContex
 	 * in the given packages and automatically refreshing the context.
 	 * @param basePackages the packages to check for annotated classes
 	 */
+	//根据包路径加载注解配置
 	public AnnotationConfigApplicationContext(String... basePackages) {
 		this();
+		//扫描包
 		scan(basePackages);
 		refresh();
 	}

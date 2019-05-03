@@ -115,7 +115,9 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 	@Override
 	@Nullable
 	public NamespaceHandler resolve(String namespaceUri) {
+		//从 META-INF/spring.handlers 路径下加载key-value，存入 handlerMappings
 		Map<String, Object> handlerMappings = getHandlerMappings();
+		//根据namespaceUri查找META-INF/spring.handlers中对应的handler名称
 		Object handlerOrClassName = handlerMappings.get(namespaceUri);
 		if (handlerOrClassName == null) {
 			return null;
@@ -126,6 +128,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 		else {
 			String className = (String) handlerOrClassName;
 			try {
+				//加载并初始化对应的配置的handler，这个有点像SPI的方式
 				Class<?> handlerClass = ClassUtils.forName(className, this.classLoader);
 				if (!NamespaceHandler.class.isAssignableFrom(handlerClass)) {
 					throw new FatalBeanException("Class [" + className + "] for namespace [" + namespaceUri +
@@ -149,8 +152,10 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 
 	/**
 	 * Load the specified NamespaceHandler mappings lazily.
+	 * 默认从 META-INF/spring.handlers 路径下加载key-value，并把结果存放到handlerMappings里
 	 */
 	private Map<String, Object> getHandlerMappings() {
+		//初始 handlerMappings是空的
 		Map<String, Object> handlerMappings = this.handlerMappings;
 		if (handlerMappings == null) {
 			synchronized (this) {
@@ -160,6 +165,7 @@ public class DefaultNamespaceHandlerResolver implements NamespaceHandlerResolver
 						logger.trace("Loading NamespaceHandler mappings from [" + this.handlerMappingsLocation + "]");
 					}
 					try {
+						//
 						Properties mappings =
 								PropertiesLoaderUtils.loadAllProperties(this.handlerMappingsLocation, this.classLoader);
 						if (logger.isTraceEnabled()) {

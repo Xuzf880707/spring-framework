@@ -190,7 +190,7 @@ public abstract class WebApplicationContextUtils {
 			// Register as ServletContext attribute, for ContextCleanupListener to detect it.
 			sc.setAttribute(ServletContextScope.class.getName(), appScope);
 		}
-
+		//为WEB环境的特定对象设置工厂Bean,用来生产 ServletRequest、ServletResponse、HttpSession、WebRequest对象
 		beanFactory.registerResolvableDependency(ServletRequest.class, new RequestObjectFactory());
 		beanFactory.registerResolvableDependency(ServletResponse.class, new ResponseObjectFactory());
 		beanFactory.registerResolvableDependency(HttpSession.class, new SessionObjectFactory());

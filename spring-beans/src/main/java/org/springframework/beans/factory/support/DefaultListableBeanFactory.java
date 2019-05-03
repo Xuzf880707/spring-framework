@@ -166,9 +166,11 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	private final Map<Class<?>, String[]> singletonBeanNamesByType = new ConcurrentHashMap<>(64);
 
 	/** List of bean definition names, in registration order. */
+	//存放已经定义的BeanDefinition的beanName
 	private volatile List<String> beanDefinitionNames = new ArrayList<>(256);
 
 	/** List of names of manually registered singletons, in registration order. */
+	//存放
 	private volatile Set<String> manualSingletonNames = new LinkedHashSet<>(16);
 
 	/** Cached array of bean definition names in case of frozen configuration. */
@@ -854,6 +856,12 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	// Implementation of BeanDefinitionRegistry interface
 	//---------------------------------------------------------------------
 
+	/***
+	 * 当BeanDefinition被加载到到IOC容器后，解析来就要对BeanDefinition进行注册，注册到ConcurrentHashMap:beanDefinitionMap
+	 * @param beanName
+	 * @param beanDefinition
+	 * @throws BeanDefinitionStoreException
+	 */
 	@Override
 	public void registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
 			throws BeanDefinitionStoreException {
@@ -870,10 +878,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 						"Validation of bean definition failed", ex);
 			}
 		}
-
+		//判断是否已存在beanName一样的 BeanDefinition
 		BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
 		if (existingDefinition != null) {
-			if (!isAllowBeanDefinitionOverriding()) {
+			if (!isAllowBeanDefinitionOverriding()) { //如果不支持覆盖的化，则
 				throw new BeanDefinitionOverrideException(beanName, beanDefinition, existingDefinition);
 			}
 			else if (existingDefinition.getRole() < beanDefinition.getRole()) {
@@ -901,9 +909,9 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			this.beanDefinitionMap.put(beanName, beanDefinition);
 		}
 		else {
-			if (hasBeanCreationStarted()) {
+			if (hasBeanCreationStarted()) {//表示Bean已经开始创建了
 				// Cannot modify startup-time collection elements anymore (for stable iteration)
-				synchronized (this.beanDefinitionMap) {
+				synchronized (this.beanDefinitionMap) {//注册的过程加锁，保证数据的一致性
 					this.beanDefinitionMap.put(beanName, beanDefinition);
 					List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
 					updatedDefinitions.addAll(this.beanDefinitionNames);
@@ -1009,10 +1017,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 	public void registerSingleton(String beanName, Object singletonObject) throws IllegalStateException {
 		super.registerSingleton(beanName, singletonObject);
 
-		if (hasBeanCreationStarted()) {
+		if (hasBeanCreationStarted()) {//如果Bean已经开始建立的话
 			// Cannot modify startup-time collection elements anymore (for stable iteration)
-			synchronized (this.beanDefinitionMap) {
-				if (!this.beanDefinitionMap.containsKey(beanName)) {
+			synchronized (this.beanDefinitionMap) {//加锁，控制一边注册，一般往map里存放的并发问题
+				if (!this.beanDefinitionMap.containsKey(beanName)) {//如果还未注册，则 manualSingletonNames+1，并把beanName里放到 updatedSingletons
 					Set<String> updatedSingletons = new LinkedHashSet<>(this.manualSingletonNames.size() + 1);
 					updatedSingletons.addAll(this.manualSingletonNames);
 					updatedSingletons.add(beanName);

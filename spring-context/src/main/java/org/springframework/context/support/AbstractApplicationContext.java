@@ -517,29 +517,41 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
+		//使用互斥锁，防止启动、关闭及注册函数的重复调用
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
 			//为加载BeanDefinition 准备上下文环境
+			//提前准备启动参数
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
 			//这里是告诉子类启动refreshBeanFactory()方法，比如子类AbstractRefreshableApplicationContext
+			//beanFactory.xml配置文件的读取也是在此时加载
+			/**
+			 * 1、AbstractRefreshableApplicationContext.createBeanFactory 创建BeanFactory
+			 * 2、AbstractRefreshableConfigApplicationContext.customizeBeanFactory 定制BeanFactory
+			 * 3、XmlWebApplicationContext.loadBeanDefinitions将bean配置文件加载到BeanFactory
+			 *
+			 */
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
+			//初始化和设置BeanFactory的初始参数
 			prepareBeanFactory(beanFactory);
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
-				//设置 BeanFactory 的后置处理
-				postProcessBeanFactory(beanFactory);
+				//调用 BeanFactory 实例化的后置处理器
+				//spring boot的核心上下文实现类AnnotationConfigEmbeddedWebApplicationContext通过重写
+				//postProcessBeanFactory方法来实现在spring boot场景下对Bean配置的加载
+				postProcessBeanFactory(beanFactory);//AbstractRefreshableWebApplicationContext
 
 				// Invoke factory processors registered as beans in the context.
 				//调用 BeanFactory 的后处理器，这些后处理器是在Bean定义中向容器注册的
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
-				//注册 Bean 的后处理器，在bean创建过程中调用
+				//在bean工厂中注册Bean的后置处理器(BeanPostPreocessors),bean的代理的生成由它来实现
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
@@ -547,11 +559,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
-				//初始化上下文中的事件机制，
+				//初始化消息推送器，注册一个默认的单例Bean SimpleApplicationEventMulticaster
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
-				//初始化其它的特殊bean
+				//调用子类重写的当前方法，是子类实现的拓展
+				//spring boot核心类EmbeddedWebApplicationContext就是用这个方法来初始化容器的
 				onRefresh();
 
 				// Check for listener beans and register them.
@@ -560,6 +573,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 				// Instantiate all remaining (non-lazy-init) singletons.
 				//实例化所有的(non-lazy-init)单件
+				//把所有非延迟加载的Bean初始化并设置冻结标识为，防止重新实例化Bean浪费资源
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
@@ -578,6 +592,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 				destroyBeans();
 
 				// Reset 'active' flag.
+				//释放标志位，标识其可以重新启动
 				cancelRefresh(ex);
 
 				// Propagate exception to caller.
@@ -587,6 +602,8 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			finally {
 				// Reset common introspection caches in Spring's core, since we
 				// might not ever need metadata for singleton beans anymore...
+				//清除与反射相关的缓存，比如反射的方法、字段、类型解析及类加载
+				//spring框架本身对Java反射的技术用的比较多，特别是IOC部分，但是能保证对性能、内存的管理以及对软引用、弱引用的使用
 				resetCommonCaches();
 			}
 		}
@@ -636,6 +653,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @return the fresh BeanFactory instance
 	 * @see #refreshBeanFactory()
 	 * @see #getBeanFactory()
+	 * AbstractRefreshableConfigApplicationContext.refreshBeanFactory
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
 		refreshBeanFactory();//对于FileSystemXmlApplicationContext，它是交给AbstractRefreshableApplicationContext.refreshBeanFactory

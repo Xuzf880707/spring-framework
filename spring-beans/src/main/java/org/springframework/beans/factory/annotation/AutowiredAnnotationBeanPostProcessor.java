@@ -245,8 +245,10 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 			throws BeanCreationException {
 
 		// Let's check for lookup methods here..
+		//查找类上的lookup注解的方法
 		if (!this.lookupMethodsChecked.contains(beanName)) {
 			try {
+				//如果有方法注解了lookup，则为方法添加重写的方法，在每次调用方法的时候实际上是调用了LookUp注解上配置的方法
 				ReflectionUtils.doWithMethods(beanClass, method -> {
 					Lookup lookup = method.getAnnotation(Lookup.class);
 					if (lookup != null) {
@@ -270,6 +272,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 		}
 
 		// Quick check on the concurrent map first, with minimal locking.
+		//检查本地缓存是否已加载过相应的类
 		Constructor<?>[] candidateConstructors = this.candidateConstructorsCache.get(beanClass);
 		if (candidateConstructors == null) {
 			// Fully synchronized resolution now...
@@ -278,6 +281,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 				if (candidateConstructors == null) {
 					Constructor<?>[] rawCandidates;
 					try {
+						//获得代理类的所有构造函数
 						rawCandidates = beanClass.getDeclaredConstructors();
 					}
 					catch (Throwable ex) {
@@ -290,6 +294,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 					Constructor<?> defaultConstructor = null;
 					Constructor<?> primaryConstructor = BeanUtils.findPrimaryConstructor(beanClass);
 					int nonSyntheticConstructors = 0;
+					//遍历代理类的所有构造函数
 					for (Constructor<?> candidate : rawCandidates) {
 						if (!candidate.isSynthetic()) {
 							nonSyntheticConstructors++;
@@ -297,13 +302,18 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 						else if (primaryConstructor != null) {
 							continue;
 						}
+						//获得构造方法上的所有注解
 						AnnotationAttributes ann = findAutowiredAnnotation(candidate);
+						//如果当前构造方法未做过任何注解
 						if (ann == null) {
+							//获得代理对象代理的具体对象
 							Class<?> userClass = ClassUtils.getUserClass(beanClass);
 							if (userClass != beanClass) {
 								try {
+									//获得具体对象中和代理对象相应的构造方法
 									Constructor<?> superCtor =
 											userClass.getDeclaredConstructor(candidate.getParameterTypes());
+									//如果获得具体对象中构造方法上的注解
 									ann = findAutowiredAnnotation(superCtor);
 								}
 								catch (NoSuchMethodException ex) {
@@ -311,15 +321,20 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 								}
 							}
 						}
+						//如果当前代理对象或具体对象的构造方法上做了注解
+						//所以如果构造函数没有required注解，则都会被加入到candidates，且 requiredConstructor是参数为空的那个
+						//但是如果构造函数上做了 required=true的注解，则不允许其他的构造函数上有任何注解，而且也只能有一个构造函数上的注解是required=true
 						if (ann != null) {
-							if (requiredConstructor != null) {
+							if (requiredConstructor != null) {//如果对应类之前有别的类构造方法已经有过required=true的注解
 								throw new BeanCreationException(beanName,
 										"Invalid autowire-marked constructor: " + candidate +
 										". Found constructor with 'required' Autowired annotation already: " +
 										requiredConstructor);
 							}
+							//获取注解里required的配置
 							boolean required = determineRequiredStatus(ann);
-							if (required) {
+							if (required) {//如果当前构造方法配置了required=true的注解，则其他的构造方法不能做任何注解
+								//如果代理对象
 								if (!candidates.isEmpty()) {
 									throw new BeanCreationException(beanName,
 											"Invalid autowire-marked constructors: " + candidates +
@@ -330,12 +345,12 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 							}
 							candidates.add(candidate);
 						}
-						else if (candidate.getParameterCount() == 0) {
+						else if (candidate.getParameterCount() == 0) {//如果构造方法上未有任何注解，且参数个数是0，则默认构造函数为该构造方法
 							defaultConstructor = candidate;
 						}
 					}
-					if (!candidates.isEmpty()) {
-						// Add default constructor to list of optional constructors, as fallback.
+					if (!candidates.isEmpty()) {//如果 有满足条件的构造函数，也就是candidates不为空
+						// 如果找到了合适的构造函数，但是这个构造方法不是required=true,则采用默认的构造器
 						if (requiredConstructor == null) {
 							if (defaultConstructor != null) {
 								candidates.add(defaultConstructor);
@@ -348,7 +363,7 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 							}
 						}
 						candidateConstructors = candidates.toArray(new Constructor<?>[0]);
-					}
+					}//如果没有找到含有注解的构造方法，但是这个类只定义了一个有参构造方法，则默认使用当前构造方法
 					else if (rawCandidates.length == 1 && rawCandidates[0].getParameterCount() > 0) {
 						candidateConstructors = new Constructor<?>[] {rawCandidates[0]};
 					}
@@ -371,8 +386,10 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 
 	@Override
 	public PropertyValues postProcessProperties(PropertyValues pvs, Object bean, String beanName) {
+		//获取自动注入的元数据
 		InjectionMetadata metadata = findAutowiringMetadata(beanName, bean.getClass(), pvs);
 		try {
+			//获取当前属性的元数据并注入目标属性中
 			metadata.inject(bean, beanName, pvs);
 		}
 		catch (BeanCreationException ex) {
@@ -415,14 +432,17 @@ public class AutowiredAnnotationBeanPostProcessor extends InstantiationAwareBean
 
 
 	private InjectionMetadata findAutowiringMetadata(String beanName, Class<?> clazz, @Nullable PropertyValues pvs) {
-		// Fall back to class name as cache key, for backwards compatibility with custom callers.
+		// 优先使用Bean名称进行缓存，如果Bean名称为空，则使用类名进行缓存
 		String cacheKey = (StringUtils.hasLength(beanName) ? beanName : clazz.getName());
-		// Quick check on the concurrent map first, with minimal locking.
+		// 先去缓存里查找
 		InjectionMetadata metadata = this.injectionMetadataCache.get(cacheKey);
+		//如果在缓存里没有并且class不为空
 		if (InjectionMetadata.needsRefresh(metadata, clazz)) {
+			//则使用双重检查来保证性能和线程安全
 			synchronized (this.injectionMetadataCache) {
 				metadata = this.injectionMetadataCache.get(cacheKey);
 				if (InjectionMetadata.needsRefresh(metadata, clazz)) {
+					//保护性操作，先清除原来的属性
 					if (metadata != null) {
 						metadata.clear(pvs);
 					}

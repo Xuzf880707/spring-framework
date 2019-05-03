@@ -67,7 +67,7 @@ final class PostProcessorRegistrationDelegate {
 				if (postProcessor instanceof BeanDefinitionRegistryPostProcessor) {
 					BeanDefinitionRegistryPostProcessor registryProcessor =
 							(BeanDefinitionRegistryPostProcessor) postProcessor;
-					registryProcessor.postProcessBeanDefinitionRegistry(registry);
+					registryProcessor.tionRegistry(registry);
 					registryProcessors.add(registryProcessor);
 				}
 				else {
