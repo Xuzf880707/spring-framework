@@ -93,6 +93,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	@Override
 	public void registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
 		this.readerContext = readerContext;
+		//doc.getDocumentElement()返回beans标签，也就是application.xml中的根标签
 		doRegisterBeanDefinitions(doc.getDocumentElement());
 	}
 
@@ -125,10 +126,13 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		// the new (child) delegate with a reference to the parent for fallback purposes,
 		// then ultimately reset this.delegate back to its original (parent) reference.
 		// this behavior emulates a stack of delegates without actually necessitating one.
+		//
 		BeanDefinitionParserDelegate parent = this.delegate;
+		//创建一个用于格式化封装BeanDefinition的转换器
 		this.delegate = createDelegate(getReaderContext(), root, parent);
-
+		//判断Beans标签是不是属于命名空间：http://www.springframework.org/schema/beans里的元素，这边肯定返回true
 		if (this.delegate.isDefaultNamespace(root)) {
+			//判断beans标签是否配置了profile属性
 			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
 			if (StringUtils.hasText(profileSpec)) {
 				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
@@ -151,11 +155,13 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 
 		this.delegate = parent;
 	}
-
+	//返回一个针对格式化解析BeanDefinition的类：BeanDefinitionParserDelegate
 	protected BeanDefinitionParserDelegate createDelegate(
 			XmlReaderContext readerContext, Element root, @Nullable BeanDefinitionParserDelegate parentDelegate) {
 
 		BeanDefinitionParserDelegate delegate = new BeanDefinitionParserDelegate(readerContext);
+		//获得Beans标签里配置的属性：default-lazy-init、default-merge、default-autowire、default-dependency-check、default-init-method、default-autowire-candidates、default-destroy-method
+		//default-destroy-method\
 		delegate.initDefaults(root, parentDelegate);
 		return delegate;
 	}
