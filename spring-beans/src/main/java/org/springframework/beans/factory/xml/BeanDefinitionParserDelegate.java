@@ -522,6 +522,7 @@ public class BeanDefinitionParserDelegate {
 			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
 			//接续meta子标签
 			parseMetaElements(ele, bd);
+			//解析lookup-method标签
 			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
 			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
 			//解析自元素 contructor
@@ -653,6 +654,11 @@ public class BeanDefinitionParserDelegate {
 				parentName, className, this.readerContext.getBeanClassLoader());
 	}
 
+	/***
+	 * 同样的解析bean的元信息：Meta标签
+	 * @param ele
+	 * @param attributeAccessor
+	 */
 	public void parseMetaElements(Element ele, BeanMetadataAttributeAccessor attributeAccessor) {
 		NodeList nl = ele.getChildNodes();
 		for (int i = 0; i < nl.getLength(); i++) {
@@ -711,7 +717,7 @@ public class BeanDefinitionParserDelegate {
 		NodeList nl = beanEle.getChildNodes();
 		for (int i = 0; i < nl.getLength(); i++) {
 			Node node = nl.item(i);
-			if (isCandidateElement(node) && nodeNameEquals(node, PROPERTY_ELEMENT)) {//判断是否是property
+			if (isCandidateElement(node) && nodeNameEquals(node, PROPERTY_ELEMENT)) {//判断是否是property标签
 				parsePropertyElement((Element) node, bd);
 			}
 		}
@@ -838,6 +844,7 @@ public class BeanDefinitionParserDelegate {
 
 	/**
 	 * Parse a property element.
+	 * 开始解析property标签
 	 */
 	public void parsePropertyElement(Element ele, BeanDefinition bd) {
 		//获得property的name属性
@@ -853,7 +860,10 @@ public class BeanDefinitionParserDelegate {
 				error("Multiple 'property' definitions for property '" + propertyName + "'", ele);
 				return;
 			}
+			//解析<property />标签，并创建一个对应的RuntimeBeanReference对象
 			Object val = parsePropertyValue(ele, bd, propertyName);
+			//将RuntimeBeanReference包装到PropertyValue对象，并添加到BeanDefinition的MutablePropertyValues集合里，
+			//我们知道，一个<bean>里可以抱恨多个<property>标签
 			PropertyValue pv = new PropertyValue(propertyName, val);
 			parseMetaElements(ele, pv);
 			pv.setSource(extractSource(ele));
