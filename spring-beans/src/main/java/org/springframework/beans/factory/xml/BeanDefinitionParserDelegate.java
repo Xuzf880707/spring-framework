@@ -507,13 +507,14 @@ public class BeanDefinitionParserDelegate {
 		if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
 			className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
 		}
+		//读取bean的parent属性
 		String parent = null;
 		if (ele.hasAttribute(PARENT_ATTRIBUTE)) {
 			parent = ele.getAttribute(PARENT_ATTRIBUTE);
 		}
 
 		try {
-			//根据classs属性和parent属性，创建 AbstractBeanDefinition，为Bean定义信息的载入做准备
+			//根据classs属性和parent属性，初始化创建 AbstractBeanDefinition，为Bean定义信息的载入做准备
 			//这里parent只是用来setParent()
 			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
 			//对当前的bean元素进行属性解析
