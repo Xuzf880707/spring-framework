@@ -311,29 +311,32 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @return the number of bean definitions found
 	 * @throws BeanDefinitionStoreException in case of loading or parsing errors
 	 */
-	//加载指定路径的文件
+	//加载application.xml文件，将Bean标签解释成BeanDefinition
 	public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefinitionStoreException {
 		Assert.notNull(encodedResource, "EncodedResource must not be null");
-		if (logger.isTraceEnabled()) {
+		if (logger.isTraceEnabled()) {//是否打印追踪日志
 			logger.trace("Loading XML bean definitions from " + encodedResource);
 		}
-
+		//获得已加载的配置文件:application.xml，第一次加载的话这边是空的
 		Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
 		if (currentResources == null) {
 			currentResources = new HashSet<>(4);
 			this.resourcesCurrentlyBeingLoaded.set(currentResources);
 		}
+		//如果已加载过该application.xml话则抛异常(比如一个环境里new多个ApplicationContext)
 		if (!currentResources.add(encodedResource)) {
 			throw new BeanDefinitionStoreException(
 					"Detected cyclic loading of " + encodedResource + " - check your import definitions!");
 		}
 		try {
+			//获得一个指向application.xml的流，用于从application.xml读文件
 			InputStream inputStream = encodedResource.getResource().getInputStream();
 			try {
 				InputSource inputSource = new InputSource(inputStream);
 				if (encodedResource.getEncoding() != null) {
 					inputSource.setEncoding(encodedResource.getEncoding());
 				}
+				//开始用流的方式读取application.xml文件，将其读到内存里，从内核态写入到用户态
 				return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
 			}
 			finally {

@@ -517,7 +517,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	@Override
 	public void refresh() throws BeansException, IllegalStateException {
-		//使用互斥锁，防止启动、关闭及注册函数的重复调用
+		//使用互斥锁，防止启动、关闭及注册函数的重复调用。避免并发启动
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
 			//为加载BeanDefinition 准备上下文环境
@@ -614,8 +614,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * active flag as well as performing any initialization of property sources.
 	 */
 	protected void prepareRefresh() {
+		//记录ApplicationContext的启动时间
 		this.startupDate = System.currentTimeMillis();
+		//关闭'关闭'开关
 		this.closed.set(false);
+		//打开 '活跃'开关
 		this.active.set(true);
 
 		if (logger.isDebugEnabled()) {
@@ -628,7 +631,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment
-		initPropertySources();//初始化环境变量
+		initPropertySources();//初始化环境变量，用户可自己实现
 
 		// Validate that all properties marked as required are resolvable
 		// see ConfigurablePropertyResolver#setRequiredProperties
@@ -656,6 +659,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * AbstractRefreshableConfigApplicationContext.refreshBeanFactory
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
+		//刷新BeanFactory（重新创建BeanFactory）
 		refreshBeanFactory();//对于FileSystemXmlApplicationContext，它是交给AbstractRefreshableApplicationContext.refreshBeanFactory
 		return getBeanFactory();
 	}
