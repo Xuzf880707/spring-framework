@@ -239,12 +239,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	@SuppressWarnings("unchecked")
 	protected <T> T doGetBean(final String name, @Nullable final Class<T> requiredType,
 			@Nullable final Object[] args, boolean typeCheckOnly) throws BeansException {
-
+		//获得beanName
 		final String beanName = transformedBeanName(name);
 		Object bean;
 
 		// Eagerly check singleton cache for manually registered singletons.
+		//检查这个beanName对应的实例是否已经存在
 		Object sharedInstance = getSingleton(beanName);
+		//如果已经存在了，有可能是并发创建导致，打印日志追踪
 		if (sharedInstance != null && args == null) {
 			if (logger.isTraceEnabled()) {
 				if (isSingletonCurrentlyInCreation(beanName)) {
@@ -258,15 +260,18 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
-		else {
+		else {//如果是第一次新建对象
 			// Fail if we're already creating this bean instance:
 			// We're assumably within a circular reference.
+			//再次判断是否创建过该实例
 			if (isPrototypeCurrentlyInCreation(beanName)) {
 				throw new BeanCurrentlyInCreationException(beanName);
 			}
 
 			// Check if bean definition exists in this factory.
+			//获得BeanFactory的父工厂
 			BeanFactory parentBeanFactory = getParentBeanFactory();
+			//如果父工厂不为空，且父工厂里未加载过该beanName
 			if (parentBeanFactory != null && !containsBeanDefinition(beanName)) {
 				// Not found -> check parent.
 				String nameToLookup = originalBeanName(name);
@@ -292,10 +297,13 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 			}
 
 			try {
+				//根据BeanName获得RootBeanDefinition
 				final RootBeanDefinition mbd = getMergedLocalBeanDefinition(beanName);
+				//检查这个RootBeanDefinition不能是abstract
 				checkMergedBeanDefinition(mbd, beanName, args);
 
 				// Guarantee initialization of beans that the current bean depends on.
+				//判断该RootBeanDefinition是否有依赖了别的Bean，如果有的话，必须先初始化被依赖的bean
 				String[] dependsOn = mbd.getDependsOn();
 				if (dependsOn != null) {
 					for (String dep : dependsOn) {
@@ -315,7 +323,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 
 				// Create bean instance.
-				if (mbd.isSingleton()) {
+				if (mbd.isSingleton()) {//创建bean实例，是一个单例
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
 							return createBean(beanName, mbd, args);
@@ -1362,6 +1370,9 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @throws CannotLoadBeanClassException if we failed to load the class
 	 */
 	@Nullable
+	/***
+	 * 根据class属性利用加载器加载对应的class
+	 */
 	protected Class<?> resolveBeanClass(final RootBeanDefinition mbd, String beanName, final Class<?>... typesToMatch)
 			throws CannotLoadBeanClassException {
 		try {
@@ -1388,10 +1399,17 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 		}
 	}
 
+	/***
+	 * 根据mbd中的class属性所指向的类路径加载class
+	 * @param
+	 * @param
+	 * @return
+	 * @throws
+	 */
 	@Nullable
 	private Class<?> doResolveBeanClass(RootBeanDefinition mbd, Class<?>... typesToMatch)
 			throws ClassNotFoundException {
-
+		//获得类加载
 		ClassLoader beanClassLoader = getBeanClassLoader();
 		ClassLoader classLoaderToUse = beanClassLoader;
 		if (!ObjectUtils.isEmpty(typesToMatch)) {
@@ -1408,6 +1426,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				}
 			}
 		}
+		//获取bean标签配置的class属性
 		String className = mbd.getBeanClassName();
 		if (className != null) {
 			Object evaluated = evaluateBeanDefinitionString(className, mbd);
@@ -1440,7 +1459,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @return the resolved value
 	 * @see #setBeanExpressionResolver
 	 */
-	@Nullable
+
+	/**
+	 * value: class的名称
+	 * beanDefinition： class对应的定义信息BeanDefinition
+	 */
 	protected Object evaluateBeanDefinitionString(@Nullable String value, @Nullable BeanDefinition beanDefinition) {
 		if (this.beanExpressionResolver == null) {
 			return value;
@@ -1448,6 +1471,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 		Scope scope = null;
 		if (beanDefinition != null) {
+			//获得一个bean的会话范围设置，也就是在Bean的scope属性，默认是空
 			String scopeName = beanDefinition.getScope();
 			if (scopeName != null) {
 				scope = getRegisteredScope(scopeName);

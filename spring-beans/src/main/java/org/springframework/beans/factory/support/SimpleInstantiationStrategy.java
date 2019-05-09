@@ -50,23 +50,29 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 	 * Return the factory method currently being invoked or {@code null} if none.
 	 * <p>Allows factory method implementations to determine whether the current
 	 * caller is the container itself as opposed to user code.
+	 * // 返回当前线程所有的FactoryMethod变量值
 	 */
 	@Nullable
 	public static Method getCurrentlyInvokedFactoryMethod() {
 		return currentlyInvokedFactoryMethod.get();
 	}
 
-
+	// 第一种实例化方法，实现部分，部分抽象
 	@Override
 	public Object instantiate(RootBeanDefinition bd, @Nullable String beanName, BeanFactory owner) {
 		// Don't override the class with CGLIB if no overrides.
+		// bd对象定义里，是否包含MethodOverride列表；spring有两个标签参数会产生MethodOverrides ，分别是 lookup-method,replaced-method
+		// 没有MethodOverride对象，可以直接实例化
 		if (!bd.hasMethodOverrides()) {
+			// 实例化对象的构造方法
 			Constructor<?> constructorToUse;
+			// 锁定对象，使获得实例化构造方法线程安全
 			synchronized (bd.constructorArgumentLock) {
+				// 查看bd对象里是否含有
 				constructorToUse = (Constructor<?>) bd.resolvedConstructorOrFactoryMethod;
-				if (constructorToUse == null) {
+				if (constructorToUse == null) {// 没有就生成
 					final Class<?> clazz = bd.getBeanClass();
-					if (clazz.isInterface()) {
+					if (clazz.isInterface()) {//如果类是一个接口，则报错，所以说接口不能被实例化
 						throw new BeanInstantiationException(clazz, "Specified class is an interface");
 					}
 					try {
@@ -75,8 +81,10 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 									(PrivilegedExceptionAction<Constructor<?>>) clazz::getDeclaredConstructor);
 						}
 						else {
+							//获得类的构造函数
 							constructorToUse =	clazz.getDeclaredConstructor();
 						}
+						// 生成成功后，将构造函数赋值给bd对象，后面使用
 						bd.resolvedConstructorOrFactoryMethod = constructorToUse;
 					}
 					catch (Throwable ex) {
@@ -84,10 +92,12 @@ public class SimpleInstantiationStrategy implements InstantiationStrategy {
 					}
 				}
 			}
+			// 反射生成对象
 			return BeanUtils.instantiateClass(constructorToUse);
 		}
 		else {
 			// Must generate CGLIB subclass.
+			// 有MethodOverride对象，需要使用cglib实现方式实现
 			return instantiateWithMethodInjection(bd, beanName, owner);
 		}
 	}

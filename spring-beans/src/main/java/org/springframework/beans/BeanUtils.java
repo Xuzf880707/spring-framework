@@ -107,11 +107,12 @@ public abstract class BeanUtils {
 	 * @return the new instance
 	 * @throws BeanInstantiationException if the bean cannot be instantiated.
 	 * The cause may notably indicate a {@link NoSuchMethodException} if no
-	 * primary/default constructor was found, a {@link NoClassDefFoundError}
+	 * p˚rimary/default constructor was found, a {@link NoClassDefFoundError}
 	 * or other {@link LinkageError} in case of an unresolvable class definition
 	 * (e.g. due to a missing dependency at runtime), or an exception thrown
 	 * from the constructor invocation itself.
 	 * @see Constructor#newInstance
+	 * 通过反射生成一个对象
 	 */
 	public static <T> T instantiateClass(Class<T> clazz) throws BeanInstantiationException {
 		Assert.notNull(clazz, "Class must not be null");
