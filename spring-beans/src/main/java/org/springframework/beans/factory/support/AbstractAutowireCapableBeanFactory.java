@@ -410,6 +410,15 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		return initializeBean(beanName, existingBean, null);
 	}
 
+	/***
+	 * 在实例对象之前
+	 * 遍历所有的 BeanPostPreoccessor
+	 *   开始执行BeanPostPreoccessor的postProcessBeforeInitialization
+	 * @param existingBean
+	 * @param beanName
+	 * @return
+	 * @throws BeansException
+	 */
 	@Override
 	public Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, String beanName)
 			throws BeansException {
@@ -425,6 +434,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		return result;
 	}
 
+	/***
+	 * 	 * 在实例对象之前
+	 * 	 * 遍历所有的 BeanPostPreoccessor
+	 * 	 *   开始执行BeanPostPreoccessor的postProcessAfterInitialization
+	 *
+	 */
 	@Override
 	public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName)
 			throws BeansException {
@@ -552,6 +567,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Allow post-processors to modify the merged bean definition.
+		//在这里可以执行 BeanPostProcessor中的postProcessAfterInitialization方法
 		synchronized (mbd.postProcessingLock) {
 			if (!mbd.postProcessed) {
 				try {
@@ -580,6 +596,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
+			//包装bean
 			populateBean(beanName, mbd, instanceWrapper);
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
@@ -1076,7 +1093,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			//以下需要满足两个条件：
 			// 		beanDefinition的synthetic=false
 			//      hasInstantiationAwareBeanPostProcessors=true：
-			//
+			//这里的BeanPostProcessors必须实现InstantiationAwareBeanPostProcessor或者DestructionAwareBeanPostProcessor
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {//第一个BeanPostProcessor扩展点
 				Class<?> targetType = determineTargetType(beanName, mbd);
 				if (targetType != null) {
@@ -1772,11 +1789,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		Object wrappedBean = bean;
+		//开始执行BeanPostPreoccessor的 postProcessBeforeInitialization
 		if (mbd == null || !mbd.isSynthetic()) {
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
 		try {
+			//调用 BeanPostPreoccessor的afterPropertiesSet方法
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		}
 		catch (Throwable ex) {
@@ -1784,6 +1803,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					(mbd != null ? mbd.getResourceDescription() : null),
 					beanName, "Invocation of init method failed", ex);
 		}
+		//开始执行BeanPostPreoccessor的postProcessAfterInitialization
 		if (mbd == null || !mbd.isSynthetic()) {
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
@@ -1920,6 +1940,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 * registered BeanPostProcessors, giving them a chance to post-process the
 	 * object obtained from FactoryBeans (for example, to auto-proxy them).
 	 * @see #applyBeanPostProcessorsAfterInitialization
+	 *
+	 *
 	 */
 	@Override
 	protected Object postProcessObjectFromFactoryBean(Object object, String beanName) {
